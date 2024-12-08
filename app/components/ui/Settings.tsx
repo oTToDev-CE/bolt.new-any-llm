@@ -31,6 +31,7 @@ export const Settings = ({ open, onClose }: SettingsProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [isJustSayEnabled, setIsJustSayEnabled] = useState(false);
+  const [hideExperimentalProviders, setHideExperimentalProviders] = useState(false);
 
   // Load base URLs from cookies
   const [baseUrls, setBaseUrls] = useState(() => {
@@ -114,7 +115,12 @@ export const Settings = ({ open, onClose }: SettingsProps) => {
   };
 
   const filteredProviders = providers
-    .filter((provider) => provider.name.toLowerCase().includes(searchTerm.toLowerCase()))
+    .filter((provider) => {
+      if (hideExperimentalProviders && (provider.name === 'Ollama' || provider.name === 'LMStudio') && !provider.isEnabled) {
+        return false;
+      }
+      return provider.name.toLowerCase().includes(searchTerm.toLowerCase());
+    })
     .sort((a, b) => a.name.localeCompare(b.name));
 
   const handleCopyToClipboard = () => {
@@ -192,6 +198,23 @@ export const Settings = ({ open, onClose }: SettingsProps) => {
   };
 
   const versionHash = commit.commit; // Get the version hash from commit.json
+
+  const handleExperimentalToggle = () => {
+    setHideExperimentalProviders((prev) => {
+      const newState = !prev;
+      if (newState) {
+        // Deactivate experimental providers if hiding them
+        setProviders((prevProviders) =>
+          prevProviders.map((provider) =>
+            provider.name === 'Ollama' || provider.name === 'LMStudio'
+              ? { ...provider, isEnabled: false }
+              : provider,
+          ),
+        );
+      }
+      return newState;
+    });
+  };
 
   return (
     <RadixDialog.Root open={open}>
@@ -332,50 +355,51 @@ export const Settings = ({ open, onClose }: SettingsProps) => {
                     </div>
                   )}
                   {activeTab === 'features' && (
-                    <div className="p-4 bg-bolt-elements-bg-depth-2 border border-bolt-elements-borderColor rounded-lg mb-4">
-                      <h3 className="text-lg font-medium text-bolt-elements-textPrimary mb-4">Feature Settings</h3>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-bolt-elements-textPrimary">Debug Info</span>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            className="sr-only"
-                            checked={isDebugEnabled}
-                            onChange={() => setIsDebugEnabled(!isDebugEnabled)}
-                          />
-                          <div className={classNames(
-                            'settings-toggle__track',
-                            isDebugEnabled ? 'settings-toggle__track--enabled' : 'settings-toggle__track--disabled'
-                          )}></div>
-                          <div className={classNames(
-                            'settings-toggle__thumb',
-                            isDebugEnabled ? 'settings-toggle__thumb--enabled' : ''
-                          )}></div>
-                        </label>
+                    <div className="p-4">
+                      <div className="p-4 bg-bolt-elements-bg-depth-2 border border-bolt-elements-borderColor rounded-lg mb-4">
+                        <h3 className="text-lg font-medium text-bolt-elements-textPrimary mb-4">Feature Settings</h3>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-bolt-elements-textPrimary">Debug Info</span>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              className="sr-only"
+                              checked={isDebugEnabled}
+                              onChange={() => setIsDebugEnabled(!isDebugEnabled)}
+                            />
+                            <div className={classNames(
+                              'settings-toggle__track',
+                              isDebugEnabled ? 'settings-toggle__track--enabled' : 'settings-toggle__track--disabled'
+                            )}></div>
+                            <div className={classNames(
+                              'settings-toggle__thumb',
+                              isDebugEnabled ? 'settings-toggle__thumb--enabled' : ''
+                            )}></div>
+                          </label>
+                        </div>
                       </div>
-                    </div>
-                  )}
-                  {activeTab === 'features' && (
-                    <div className="p-4 bg-bolt-elements-bg-depth-2 border border-bolt-elements-borderColor rounded-lg">
-                      <h3 className="text-lg font-medium text-bolt-elements-textPrimary mb-4">Experimental Area</h3>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-bolt-elements-textPrimary">Replace with local models</span>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            className="sr-only"
-                            checked={isJustSayEnabled}
-                            onChange={() => setIsJustSayEnabled(!isJustSayEnabled)}
-                          />
-                          <div className={classNames(
-                            'settings-toggle__track',
-                            isJustSayEnabled ? 'settings-toggle__track--enabled' : 'settings-toggle__track--disabled'
-                          )}></div>
-                          <div className={classNames(
-                            'settings-toggle__thumb',
-                            isJustSayEnabled ? 'settings-toggle__thumb--enabled' : ''
-                          )}></div>
-                        </label>
+
+                      <div className="p-4 bg-bolt-elements-bg-depth-3 border border-bolt-elements-borderColor rounded-lg mt-4">
+                        <h4 className="text-lg font-medium text-bolt-elements-textPrimary mb-4">Experimental</h4>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-bolt-elements-textPrimary">Experimental Providers</span>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              className="sr-only"
+                              checked={!hideExperimentalProviders}
+                              onChange={handleExperimentalToggle}
+                            />
+                            <div className={classNames(
+                              'settings-toggle__track',
+                              !hideExperimentalProviders ? 'settings-toggle__track--enabled' : 'settings-toggle__track--disabled'
+                            )}></div>
+                            <div className={classNames(
+                              'settings-toggle__thumb',
+                              !hideExperimentalProviders ? 'settings-toggle__thumb--enabled' : ''
+                            )}></div>
+                          </label>
+                        </div>
                       </div>
                     </div>
                   )}
